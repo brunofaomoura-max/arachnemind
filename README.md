@@ -1,7 +1,5 @@
-<div align="center">
-
-# 🕷️ ARACHNEMIND
-### Visual Autonomous Web Crawler & Obsidian-Style Interactive Knowledge Graph
+# ArachneMind
+## Visual Autonomous Web Crawler & Obsidian-Style Interactive Knowledge Graph
 
 [![Node.js](https://img.shields.io/badge/Node.js-v18%2B-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
 [![Playwright](https://img.shields.io/badge/Playwright-Chromium-2EAD33?logo=playwright&logoColor=white)](https://playwright.dev/)
@@ -10,164 +8,159 @@
 [![Tailwind CSS](https://img.shields.io/badge/TailwindCSS-3-38B2AC?logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-*Um ecossistema full-stack que une uma **aranha procedural 3D/2D com cinemática inversa (IK)** escalando elementos do DOM em tempo real e um **grafo de conhecimento interativo 2D estilo Obsidian** para exploração conceitual e caça automatizada de preços.*
+ArachneMind e uma plataforma full-stack para exploracao e extracao estruturada de dados da web. O sistema combina uma engine procedural de inspecao visual no Document Object Model (DOM) com resolucao de cinematica inversa (Inverse Kinematics - IK) e um grafo de conhecimento bidimensional interativo no padrao Obsidian para mapeamento conceitual e comparacao de precos em tempo real.
 
 ---
 
-[Demonstração](#-visão-geral) •
-[Funcionalidades](#-funcionalidades-chave) •
-[Arquitetura](#-arquitetura-do-sistema) •
-[Instalação](#-como-executar) •
-[Price Finder](#-modo-price-finder--cotação) •
-[Exportação](#-exportação-obsidian--csv)
+## Sumario
 
-</div>
+- [Visao Geral](#visao-geral)
+- [Arquitetura do Sistema](#arquitetura-do-sistema)
+- [Modos de Operacao](#modos-de-operacao)
+  - [Price Finder](#1-modo-price-finder-radar-de-precos)
+  - [Mapeamento Mental](#2-modo-mapeamento-mental)
+- [Motor Procedural de Inspecao Visual (IK Solver)](#motor-procedural-de-inspecao-visual-ik-solver)
+- [Sentinela de Preco e Alertas](#sentinela-de-preco-e-alertas)
+- [Exportacao de Dados](#exportacao-de-dados)
+- [Pilha Tecnologica](#pilha-tecnologica)
+- [Instalacao e Execucao](#instalacao-e-execucao)
+- [Auditoria de Seguranca](#auditoria-de-seguranca)
+- [Licenca](#licenca)
 
 ---
 
-## 🌟 Visão Geral
+## Visao Geral
 
-O **ArachneMind** transforma a experiência estéril do web scraping tradicional em uma experiência visual viva e reativa. Em vez de operar às cegas em segundo plano, o sistema abre uma janela Chromium real onde uma **aranha de 8 patas com física analítica e cinemática inversa (IK)** caminha sobre os elementos do site, tece teias de seda entre conexões e dispara feixes de laser coloridos para extrair dados estruturados.
+Diferente dos crawlers convencionais que operam de maneira estatica ou headless sem feedback contextual, o ArachneMind executa navegadores Chromium visiveis atraves do Playwright, injetando uma camada de inspecao procedural que localiza, valida e extrai dados diretamente da geometria do DOM.
 
-Todos os dados capturados são transmitidos via **WebSockets (Socket.io)** diretamente para um **Grafo de Conhecimento Obsidian**, renderizado com simulação de forças elásticas, halos pulsantes para as melhores ofertas e uma gaveta analítica completa.
+Os nos e arestas resultantes sao despachados via WebSockets (Socket.io) para o frontend em React, onde um motor de fisica baseada em forcas (Force-Directed Graph) organiza entidades, dominios, paginas, termos de parcelamento e precos em tempo real.
+
+---
+
+## Arquitetura do Sistema
 
 ```
-┌─────────────────────────┐          WebSocket           ┌───────────────────────────┐
-│   Chromium + Playwright │   ───────────────────────►   │   React + ForceGraph 2D   │
-│   Aranha com Física IK  │                              │   Cérebro Digital Obsidian│
-│   Scraping com Lasers   │   ◄───────────────────────   │   Radar de Menor Preço    │
-└─────────────────────────┘          Comandos REST       └───────────────────────────┘
++-----------------------------------------------------------------------+
+|                         ARACHNEMIND PLATFORM                          |
++-----------------------------------+-----------------------------------+
+|              BACKEND              |             FRONTEND              |
+|       (Node.js / Express)         |      (React 18 / Tailwind)        |
++-----------------------------------+-----------------------------------+
+| - Playwright Browser Controller   | - Interactive 2D Canvas (D3-force)|
+| - Inverse Kinematics (IK) Engine  | - Real-time Socket.io Client      |
+| - Price Normalizer & Aggregator   | - Comparative Quotation Drawer    |
+| - Quotation CSV / MD Exporters    | - Web Audio API Alert Synthesizer |
+| - REST API & WebSocket Server     | - Workspace & Session Management  |
++-----------------------------------+-----------------------------------+
+                  |                                   ^
+                  |           WebSocket / REST        |
+                  +───────────────────────────────────+
 ```
 
 ---
 
-## ⚡ Funcionalidades Chave
+## Modos de Operacao
 
-### 1. 🕷️ Aranha Procedural com Cinemática Inversa (IK Solver)
-- **Cinemática Analítica de 2 Ossos:** Cada uma das 8 patas calcula sua articulação em tempo real via trigonometria (Lei dos Cossenos), alcançando elementos com suavidade orgânica a 60 FPS.
-- **Tetrapod Gait:** Marcha realista sincronizada com física de apoio no chão e levantamento de pernas.
-- **Teias de Seda Dinâmicas:** Trilhas de seda translúcida que conectam fisicamente os nós navegados pela aranha.
-- **Feixes de Laser Especializados:** Disparos visuais nos seletores DOM:
-  - 🟢 **Verde Neon:** Extração de texto e entidades.
-  - 🔵 **Ciano:** Reconhecimento e travessia de hyperlinks.
-  - 🟡 **Ouro / Esmeralda:** Radar de ofertas e preços de e-commerce.
-- **Magnifier HUD:** Retículo holográfico que exibe a tag HTML, seletor CSS formal e texto capturado.
+O sistema opera sob dois modos estrategicos especializados:
 
----
+### 1. Modo Price Finder (Radar de Precos)
+Projetado para agregacao, analise de dispersao de precos e monitoramento de e-commerce.
+- **Extracao Estruturada:** Captura titulos de produtos, preco a vista (PIX/Boleto), condicoes de parcelamento, custos de frete e links diretos da loja.
+- **Radar de Melhor Oferta:** Identifica automaticamente o menor valor numérico entre todas as lojas mapeadas e destaca o no vencedor no grafo com halo pulsante em esmeralda/dourado e badge de Melhor Preco.
+- **Gaveta de Cotacao Comparativa:** Painel analitico com tabela ranqueada (do menor para o maior preco), exibindo a economia percentual em relacao ao maior preco e a media de mercado.
 
-### 2. 💰 Modo Price Finder (Caçador de Preços)
-Modo focado em compras e inteligência de mercado para e-commerce (Mercado Livre, Buscapé, Magalu, Amazon, KaBuM!, etc.):
-- **Extração Abrangente:** Preço à vista (PIX/Boleto), parcelamento sem juros, valor de frete e vendedor.
-- **Radar de Melhor Oferta:** O menor preço de toda a árvore de busca é destacado visualmente no grafo com:
-  - Halo pulsante esmeralda/dourado.
-  - Badge flutuante holográfico `🏆 MELHOR PREÇO`.
-  - Sinapses elétricas conectadas brilhando em neon esmeralda (`#10b981`).
-- **Gaveta de Cotação Comparativa:**
-  - Tabela ranqueada interativa (`#1 Menor Preço`, `#2`, `#3`...).
-  - Cálculo automático de **% de Economia** em relação ao maior preço e à média de mercado.
-  - Botão de compra direta e foco interativo no grafo com um clique.
+### 2. Modo Mapeamento Mental
+Voltado para pesquisa exploratoria, revisao bibliografica e extracao de corpus textual.
+- **Hierarquia Semantica:** Classifica o conteudo em nos de Dominio Web, Paginas HTML, Cabecalhos estruturais (h1 a h3), Entidades nomeadas e Dados Formais.
+- **Conexoes Transversais (Global Brain):** Identifica sinapses e termos correlatos compartilhados entre sessoes de pesquisa distintas.
 
 ---
 
-### 3. 🎯 Sentinela de Preço & Alerta de Queda
-- **Alvo Customizável:** Configure o preço que você deseja pagar pelo produto.
-- **Alarme Sonoro Sintetizado (Web Audio API):** Quando a aranha localiza uma oferta dentro da sua meta, o navegador executa um *chime harmônico* em tempo real (sem arquivos de áudio externos).
-- **Banner Flutuante:** Notificação instantânea na interface com valor encontrado e link direto da loja.
+## Motor Procedural de Inspecao Visual (IK Solver)
+
+A camada visual injetada no navegador executa um solver analitico de cinematica inversa de dois segmentos osso/articulacao:
+
+- **Calculo Trigonometrico:** Cada apendice resolve seus angulos articulares em tempo real por meio da Lei dos Cossenos, garantindo transicoes suaves a 60 quadros por segundo.
+- **Tetrapod Gait:** Marcha coordenada baseada em estados de apoio e elevacao, ancorando os pontos de contato nas coordenadas reais retornadas por `getBoundingClientRect()`.
+- **Raios Direcionais:** Feixes colimados indicam visualmente qual elemento e atributo esta sendo submetido ao processo de parsing.
+- **Magnifier HUD:** Reticulo holografico que projeta no topo do viewport a tag do elemento, caminho CSS e o texto extraido.
 
 ---
 
-### 4. 🧠 Modo Mapeamento Mental
-- **Exploração Conceitual:** Navega por enciclopédias (Wikipédia), artigos acadêmicos ou documentações técnicas.
-- **Ramificação Automática:** Agrupa domínios, títulos `<h1>`-`<h3>`, parágrafos-chave e links externos de forma hierárquica.
-- **Sinapses Transversais (Global Brain):** Identifica e conecta tópicos em comum entre árvores de pesquisa distintas.
+## Sentinela de Preco e Alertas
+
+- **Preco Alvo:** O operador define um valor limite para o produto monitorado.
+- **Sintetizador de Audio Nativo:** Em conformidade com a Web Audio API, o sistema sintetiza um acorde harmonico em frequencias senoidais duplas no exato milissegundo em que uma oferta atinge ou fica abaixo da meta estipulada, sem depender de dependencias de audio externas.
+- **Notificacao Visual:** Painel no topo da interface apresenta a loja correspondente, o valor alcancado e a acao imediata para abertura da pagina de compra.
 
 ---
 
-### 5. 📑 Exportação Dedicada (Obsidian & Planilhas)
-- **[[Obsidian Markdown]]:** Gera arquivos Markdown prontos para uso em cofres do Obsidian com metadados YAML, tabelas estilizadas e `[[WikiLinks]]`.
-- **Planilhas CSV:** Tabela estruturada com ranking, lojas, preços, condições e links de compra para uso no Excel ou Google Sheets.
+## Exportacao de Dados
+
+O sistema fornece rotas dedicadas para exportacao formal dos dados estruturados:
+
+1. **Obsidian Vault (Markdown):** Gera documentos com frontmatter YAML, tabelas comparativas formatadas em GitHub-Flavored Markdown e referencias WikiLinks (`[[Node]]`) compativeis com a navegacao nativa do Obsidian.
+2. **Planilhas CSV:** Arquivo tabular com colunas de ranking, status de melhor oferta, loja/vendedor, precos normalizados, parcelamento, frete, taxas de economia e URLs de compra.
+3. **JSON Estruturado:** Dump integral do grafo (nos, arestas, atributos formais e carimbos de data/hora ISO 8601).
 
 ---
 
-## 🛠️ Tecnologias Utilizadas
+## Pilha Tecnologica
 
-### Frontend
-- **React 18** (Interface moderna e reativa)
-- **Vite** (Build ultrarrápido)
-- **react-force-graph-2d** (Simulação física de grafos baseada em D3.js)
-- **Tailwind CSS** (Design system dark mode com estética Obsidian e vidro fosco)
-- **Lucide Icons** (Ícones vetoriais modernos)
-- **Web Audio API** (Sintetizador polifônico para alertas sonoros)
-
-### Backend
-- **Node.js & Express** (Servidor HTTP REST)
-- **Playwright** (Orquestrador de navegador Chromium visível)
-- **Socket.io** (Transmissão de eventos e nós em tempo real)
-- **DOM Raycasting & Injection** (Engine de cinemática inversa injetada via script no navegador)
+| Componente | Tecnologia | Finalidade |
+| :--- | :--- | :--- |
+| Interface de Usuario | React 18, Vite | Renderizacao da aplicacao e gerenciamento de estado |
+| Visualizacao de Grafos | react-force-graph-2d, D3.js | Simulacao elastica orientada a forcas (Charge & Link) |
+| Estilizacao | Tailwind CSS | Sistema visual dark mode de alta densidade de informacao |
+| Servidor de Aplicacao | Node.js, Express | Roteamento REST e orquestracao de sessoes |
+| Comunicacao em Tempo Real | Socket.io | Streaming bidirecional de eventos e telemetria |
+| Automacao de Navegador | Playwright (Chromium) | Controle do browser e execucao de scripts de overlay |
+| Sintese Sonora | Web Audio API | Emissao de alertas auditivos polifonicos |
 
 ---
 
-## 🚀 Como Executar
+## Instalacao e Execucao
 
-### Pré-requisitos
-- [Node.js](https://nodejs.org/) versão 18 ou superior instalado.
-- Navegador Chromium (o Playwright fará o download automático caso necessário).
+### Requisitos
+- Node.js versao 18 ou superior instalado.
+- Gerenciador de pacotes npm.
 
-### 1. Clonar o Repositório
+### Passo 1: Obter o Codigo
 ```bash
 git clone https://github.com/brunofaomoura-max/arachnemind.git
 cd arachnemind
 ```
 
-### 2. Configurar o Backend
+### Passo 2: Inicializar o Backend
 ```bash
 cd backend
 npm install
 npx playwright install chromium
 npm start
 ```
-*O servidor backend estará ativo em `http://localhost:4000`.*
+*O orquestrador estara ativo na porta 4000 (`http://localhost:4000`).*
 
-### 3. Configurar o Frontend
-Abra um novo terminal na pasta raiz e execute:
+### Passo 3: Inicializar o Frontend
+Em um terminal separado, acesse a pasta do cliente:
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
-*O frontend estará disponível em `http://localhost:5173`.*
+*A interface estara disponivel no endereco `http://localhost:5173`.*
 
 ---
 
-## 🖥️ Como Utilizar
+## Auditoria de Seguranca
 
-1. Acesse **[http://localhost:5173](http://localhost:5173)** no seu navegador.
-2. Na barra lateral esquerda:
-   - Selecione o modo: **💰 Price Finder** ou **🧠 Mapeamento Mental**.
-   - Digite o que deseja buscar (ex: `Monitor 144Hz IPS`, `RTX 4070 Super`, `Inteligência Artificial`).
-   - *(Opcional)* Se estiver no Price Finder, defina o **Preço Alvo Sentinela (R$)**.
-   - Clique em **Lançar Aranha Autônoma**.
-3. Uma janela visível do Chromium será aberta na tela: observe a aranha procedural caminhando pelos elementos e disparando lasers.
-4. Conforme os produtos são encontrados, o grafo 2D é preenchido em tempo real.
-5. Abra o **Painel Analítico** à direita para:
-   - Ver a **Gaveta de Cotação** com ranking de menor preço.
-   - Ajustar o Sentinela de Preço.
-   - Exportar a cotação para **CSV** ou **Obsidian Markdown**.
+O codigo-fonte deste projeto e suas dependencias foram submetidos a processo de inspecao e auditoria estatica de seguranca com o framework **NVIDIA SkillSpector**, assegurando a inexistencia de scripts de execucao arbitraria, vetores de exfiltracao de credenciais ou vulnerabilidades de cadeia de suprimentos.
 
 ---
 
-## 🔒 Auditoria de Segurança Integrada
+## Licenca
 
-Este repositório conta com conformidade e segurança preventiva auditada com o **NVIDIA SkillSpector**, garantindo código higienizado e scripts sem chamadas de comando não-autorizadas ou injeções de código.
-
----
-
-## 📄 Licença
-
-Este projeto é distribuído sob a licença **MIT**. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
+Este projeto esta licenciado sob os termos da licenca MIT. Consulte o arquivo [LICENSE](LICENSE) para obter o texto integral.
 
 ---
 
-<div align="center">
-Desenvolvido com 🕷️ por <strong>Bruno Fao Moura</strong>
-</div>
+Autor: **Bruno Fao Moura**

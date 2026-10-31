@@ -1,0 +1,35 @@
+﻿{
+  "multi_skill": true,
+  "skill_count": 323,
+  "max_risk_score": 100,
+  "risk_severity": "CRITICAL",
+  "execution_successful": true,
+  "risk_recommendation": "DO_NOT_INSTALL",
+  "analysis_completeness": {
+    "is_complete": false,
+    "execution_successful": true,
+    "status": "partial",
+    "coverage_percent": 40.25,
+    "fully_inspected_files": 130,
+    "partially_inspected_files": 42,
+    "entirely_uninspected_files": 151,
+    "total_files": 323,
+    "limitations": [
+      "recursive serialized report character budget 4194304 reached"
+    ],
+    "scope": "recursive_skills"
+  },
+  "skills_scanned": 172,
+  "skills_omitted": 151,
+  "skills_output_omitted": 172,
+  "public_finding_records": 0,
+  "transitive_finding_count": 0,
+  "transitive_sources": [],
+  "skills": [
+    {
+      "omitted": true,
+      "omitted_count": 172,
+      "reason": "aggregate_output_limit"
+    }
+  ]
+}

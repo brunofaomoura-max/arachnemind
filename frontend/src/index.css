@@ -1,0 +1,28 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Scrollbar dark elegante estilo Obsidian */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #090d16;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+}
+
+.obsidian-grid-bg {
+  background-color: #070b14;
+  background-image: radial-gradient(rgba(30, 41, 59, 0.65) 1px, transparent 1px);
+  background-size: 24px 24px;
+}

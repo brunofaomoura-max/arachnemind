@@ -1,0 +1,21 @@
+{
+  "name": "arachnemind-backend",
+  "version": "1.0.0",
+  "description": "ArachneMind: Visual Autonomous Web Crawler & Interactive Knowledge Graph Backend",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "install:browsers": "npx playwright install chromium"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "playwright": "^1.44.0",
+    "socket.io": "^4.7.5",
+    "uuid": "^9.0.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

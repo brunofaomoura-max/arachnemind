@@ -21,7 +21,9 @@ import {
   Truck,
   CreditCard,
   Layers,
-  Search
+  Search,
+  RefreshCw,
+  Star
 } from 'lucide-react';
 import { NODE_STYLE_MAP } from './ObsidianGraph';
 import { BACKEND_URL } from '../services/socket';
@@ -41,6 +43,8 @@ export default function InspectorDrawer({
   const [targetPriceInput, setTargetPriceInput] = useState('');
   const [isSavingSentinel, setIsSavingSentinel] = useState(false);
   const [sentinelFeedback, setSentinelFeedback] = useState(null);
+  const [quoteSearch, setQuoteSearch] = useState('');
+  const [isRefreshingTree, setIsRefreshingTree] = useState(false);
 
   // Formulário de Nó Manual
   const [showManualForm, setShowManualForm] = useState(false);
@@ -72,7 +76,21 @@ export default function InspectorDrawer({
 
   useEffect(() => {
     fetchQuotes(activeTreeId);
-  }, [activeTreeId]);
+  }, [activeTreeId, activeTree?.nodeCount, activeTree?.updatedAt]);
+
+  const handleRefreshPrices = async () => {
+    if (!activeTreeId || activeTreeId === 'GLOBAL_BRAIN') return;
+    setIsRefreshingTree(true);
+    try {
+      await fetch(`${BACKEND_URL}/api/trees/${activeTreeId}/refresh`, {
+        method: 'POST'
+      });
+    } catch (err) {
+      console.warn('Erro ao re-escanear árvore:', err);
+    } finally {
+      setTimeout(() => setIsRefreshingTree(false), 1500);
+    }
+  };
 
   // Se o usuário selecionar um nó no grafo e não estiver na aba formal, pode alternar automaticamente
   useEffect(() => {
@@ -376,77 +394,172 @@ export default function InspectorDrawer({
                   <Layers className="w-3.5 h-3.5 text-cyan-400" />
                   Gaveta de Cotação Comparativa
                 </span>
-                <span className="text-[10px] font-mono text-slate-400">
-                  {comparisonData?.quotes?.length || 0} ofertas ranqueadas
-                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleRefreshPrices}
+                    disabled={isRefreshingTree || !activeTreeId || activeTreeId === 'GLOBAL_BRAIN'}
+                    title="Re-escanear lojas em busca de novos preços"
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/30 text-[10px] font-mono text-cyan-300 transition cursor-pointer disabled:opacity-40"
+                  >
+                    <RefreshCw className={`w-3 h-3 ${isRefreshingTree ? 'animate-spin' : ''}`} />
+                    {isRefreshingTree ? 'Varrendo...' : 'Atualizar'}
+                  </button>
+                </div>
               </div>
+
+              {comparisonData?.minPrice > 0 && (
+                <div className="grid grid-cols-3 gap-1.5 text-center font-mono text-[10px]">
+                  <div className="rounded bg-[#090d16] border border-slate-800/80 py-1 px-1.5">
+                    <div className="text-slate-500 text-[9px] uppercase">Menor</div>
+                    <div className="text-emerald-300 font-bold">
+                      R$ {comparisonData.minPrice.toFixed(0)}
+                    </div>
+                  </div>
+                  <div className="rounded bg-[#090d16] border border-slate-800/80 py-1 px-1.5">
+                    <div className="text-slate-500 text-[9px] uppercase">Mediana</div>
+                    <div className="text-cyan-300 font-bold">
+                      R$ {(comparisonData.medianPrice || comparisonData.avgPrice || 0).toFixed(0)}
+                    </div>
+                  </div>
+                  <div className="rounded bg-[#090d16] border border-slate-800/80 py-1 px-1.5">
+                    <div className="text-slate-500 text-[9px] uppercase">Maior</div>
+                    <div className="text-slate-300 font-bold">
+                      R$ {comparisonData.maxPrice.toFixed(0)}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {comparisonData?.quotes?.length > 2 && (
+                <div className="relative">
+                  <Search className="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-2" />
+                  <input
+                    type="text"
+                    value={quoteSearch}
+                    onChange={(e) => setQuoteSearch(e.target.value)}
+                    placeholder="Filtrar por loja ou modelo..."
+                    className="w-full rounded-md bg-[#090d16] border border-slate-800 pl-8 pr-2.5 py-1 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-400"
+                  />
+                </div>
+              )}
 
               {comparisonData?.quotes?.length > 0 ? (
                 <div className="space-y-2 max-h-[380px] overflow-y-auto pr-1">
-                  {comparisonData.quotes.map((q) => (
-                    <div
-                      key={q.storeNodeId}
-                      onClick={() => onSelectNode && onSelectNode({ id: q.storeNodeId, label: q.storeName, type: 'store_offer' })}
-                      className={`p-2.5 rounded-lg border transition cursor-pointer flex flex-col gap-1.5 ${
-                        q.isBestPrice
-                          ? 'bg-emerald-950/40 border-emerald-400/60 shadow-[0_0_12px_rgba(16,185,129,0.15)]'
-                          : 'bg-[#090d16] border-slate-800 hover:border-slate-700'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-1.5">
-                          <span
-                            className={`text-[10px] font-mono px-1.5 py-0.2 rounded font-extrabold ${
-                              q.rank === 1
-                                ? 'bg-amber-400 text-slate-950'
-                                : 'bg-slate-800 text-slate-300'
-                            }`}
-                          >
-                            #{q.rank}
-                          </span>
-                          <span className="text-xs font-bold text-slate-200">
-                            {q.storeName}
-                          </span>
-                          {q.isBestPrice && (
-                            <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold">
-                              MELHOR PREÇO
-                            </span>
+                  {comparisonData.quotes
+                    .filter((q) => {
+                      if (!quoteSearch.trim()) return true;
+                      const term = quoteSearch.toLowerCase();
+                      return (
+                        q.storeName?.toLowerCase().includes(term) ||
+                        q.productTitle?.toLowerCase().includes(term)
+                      );
+                    })
+                    .map((q) => (
+                      <div
+                        key={q.storeNodeId}
+                        onClick={() =>
+                          onSelectNode &&
+                          onSelectNode({
+                            id: q.storeNodeId,
+                            label: q.storeName,
+                            type: 'store_offer'
+                          })
+                        }
+                        className={`p-2.5 rounded-lg border transition cursor-pointer flex flex-col gap-1.5 ${
+                          q.isBestPrice
+                            ? 'bg-emerald-950/40 border-emerald-400/60 shadow-[0_0_12px_rgba(16,185,129,0.15)]'
+                            : 'bg-[#090d16] border-slate-800 hover:border-slate-700'
+                        }`}
+                      >
+                        <div className="flex items-start gap-2.5">
+                          {q.thumbnail && (
+                            <img
+                              src={q.thumbnail}
+                              alt={q.productTitle}
+                              loading="lazy"
+                              className="w-11 h-11 rounded bg-white object-contain p-0.5 shrink-0 border border-slate-700"
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                              }}
+                            />
                           )}
+
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-1">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span
+                                  className={`text-[10px] font-mono px-1.5 py-0.2 rounded font-extrabold ${
+                                    q.rank === 1
+                                      ? 'bg-amber-400 text-slate-950'
+                                      : 'bg-slate-800 text-slate-300'
+                                  }`}
+                                >
+                                  #{q.rank}
+                                </span>
+                                <span className="text-xs font-bold text-slate-200 truncate">
+                                  {q.storeName}
+                                </span>
+                                {q.isBestPrice && (
+                                  <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold">
+                                    MELHOR PREÇO
+                                  </span>
+                                )}
+                              </div>
+
+                              <div className="text-right shrink-0">
+                                {q.cardPrice && (
+                                  <div className="text-[9px] font-mono text-slate-500 line-through">
+                                    {q.cardPrice}
+                                  </div>
+                                )}
+                                <div className="text-xs font-bold font-mono text-emerald-300">
+                                  {q.rawCash}
+                                </div>
+                              </div>
+                            </div>
+
+                            <p className="text-[11px] text-slate-300 line-clamp-2 mt-1 leading-snug">
+                              {q.productTitle}
+                            </p>
+                          </div>
                         </div>
 
-                        <div className="text-right">
-                          <div className="text-xs font-bold font-mono text-emerald-300">
-                            {q.rawCash}
+                        <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 pt-1 border-t border-slate-800/80">
+                          <div className="flex items-center gap-2 truncate">
+                            <span className="truncate max-w-[135px]">{q.installmentStr}</span>
+                            {q.rating && (
+                              <span className="inline-flex items-center gap-0.5 text-amber-300">
+                                <Star className="w-2.5 h-2.5 fill-current" />
+                                {String(q.rating).split(' ')[0]}
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            {q.cashback && (
+                              <span className="text-[9px] px-1.5 py-0.2 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                                {q.cashback}
+                              </span>
+                            )}
+                            <span className="text-cyan-400 truncate max-w-[95px]">
+                              {q.shippingStr}
+                            </span>
+                            {q.directUrl && (
+                              <a
+                                href={q.directUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                className="text-cyan-400 hover:text-cyan-300 p-0.5 rounded hover:bg-slate-800"
+                                title="Acessar oferta"
+                              >
+                                <ExternalLink className="w-3 h-3" />
+                              </a>
+                            )}
                           </div>
                         </div>
                       </div>
-
-                      <p className="text-[11px] text-slate-400 line-clamp-1">
-                        {q.productTitle}
-                      </p>
-
-                      <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 pt-1 border-t border-slate-800/80">
-                        <span className="truncate max-w-[150px]">{q.installmentStr}</span>
-                        <div className="flex items-center gap-2">
-                          <span className="text-cyan-400 truncate max-w-[100px]">
-                            {q.shippingStr}
-                          </span>
-                          {q.directUrl && (
-                            <a
-                              href={q.directUrl}
-                              target="_blank"
-                              rel="noreferrer"
-                              onClick={(e) => e.stopPropagation()}
-                              className="text-cyan-400 hover:text-cyan-300 p-0.5 rounded hover:bg-slate-800"
-                              title="Acessar oferta"
-                            >
-                              <ExternalLink className="w-3 h-3" />
-                            </a>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                    ))}
                 </div>
               ) : (
                 <div className="text-center py-6 text-slate-500 text-xs">

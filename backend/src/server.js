@@ -10,6 +10,16 @@ const fs = require('fs');
 const path = require('path');
 const { chromium } = require('playwright');
 const { v4: uuidv4 } = require('uuid');
+const {
+  analyzeObjective,
+  parsePriceToNumber,
+  formatBRL,
+  buildInitialCrawlQueue,
+  preparePageForScraping,
+  extractRawEcommerceOffersFromPage,
+  filterAndScoreEcommerceOffers,
+  extractDeepKnowledgeFromPage
+} = require('./scraper-engine');
 
 const PORT = process.env.PORT || 4000;
 const DATA_DIR = path.join(__dirname, '..', 'data');
@@ -118,23 +128,6 @@ function registerFormalNode({
 
   saveDatabase();
   return node;
-}
-
-/**
- * Converte strings de preço (BRL / USD) para número float limpo
- */
-function parsePriceToNumber(rawString) {
-  if (!rawString) return null;
-  const match = rawString.match(/(?:R\$|\$|US\$|€|£)?\s*([0-9]{1,3}(?:[.,][0-9]{3})*(?:[.,][0-9]{2})|[0-9]+(?:[.,][0-9]{2})?)/);
-  if (!match) return null;
-  let numStr = match[1];
-  if (numStr.includes(',') && numStr.includes('.')) {
-    numStr = numStr.replace(/\./g, '').replace(',', '.');
-  } else if (numStr.includes(',')) {
-    numStr = numStr.replace(',', '.');
-  }
-  const val = parseFloat(numStr);
-  return isNaN(val) ? null : val;
 }
 
 /**
@@ -345,15 +338,22 @@ async function runAutonomousSpider({
     activeCrawlers.set(treeId, { browser, stopRequested: false });
 
     const visitedUrls = new Set();
-    const queue = [
-      {
-        url: resolvedUrl,
-        parentId: parentNodeId,
-        depth: 1
-      }
-    ];
+    const initialSources = buildInitialCrawlQueue({
+      startUrl,
+      objective,
+      crawlMode,
+      maxPages
+    });
+
+    const queue = initialSources.map((src) => ({
+      url: src.url,
+      sourceLabel: src.sourceLabel,
+      parentId: parentNodeId,
+      depth: 1
+    }));
 
     const domainNodesMap = new Map();
+    const seenOfferFingerprints = new Set();
 
     while (queue.length > 0 && visitedUrls.size < maxPages) {
       const sessionState = activeCrawlers.get(treeId);
@@ -388,10 +388,11 @@ async function runAutonomousSpider({
             label: hostname,
             edgeLabel: 'HOSTED_ON_DOMAIN',
             formalData: {
-              summary: `Domínio raiz inspecionado durante a busca por "${objective}".`,
+              summary: `Domínio raiz inspecionado (${currentTask.sourceLabel || hostname}) durante a busca por "${objective}".`,
               attributes: {
                 protocol: parsedUrl.protocol.replace(':', ''),
                 hostname,
+                sourcePlatform: currentTask.sourceLabel || hostname,
                 origin: parsedUrl.origin
               },
               sourceUrl: parsedUrl.origin,
@@ -406,7 +407,7 @@ async function runAutonomousSpider({
       io.emit('SPIDER_ACTION', {
         treeId,
         status: 'NAVIGATING',
-        message: `Navegando para ${currentTask.url}`,
+        message: `Navegando em ${currentTask.sourceLabel || hostname}: ${currentTask.url}`,
         url: currentTask.url
       });
 
@@ -421,7 +422,9 @@ async function runAutonomousSpider({
 
       // Garante que o overlay está montado mesmo em páginas com CSP restritivo
       await page.evaluate(spiderCode).catch(() => {});
-      await page.waitForTimeout(700);
+
+      // Prepara o DOM: remove banners LGPD/Cookies e faz scroll progressivo para hidratar lazy-loading
+      await preparePageForScraping(page);
 
       const pageInfo = await page.evaluate(() => {
         const title = document.title || window.location.pathname || 'Página Web';
@@ -443,6 +446,7 @@ async function runAutonomousSpider({
             `Página processada ativamente pela aranha: ${pageInfo.title}`,
           attributes: {
             pageTitle: pageInfo.title,
+            sourcePlatform: currentTask.sourceLabel || hostname,
             depthLevel: currentTask.depth,
             urlPath: parsedUrl.pathname
           },
@@ -455,117 +459,37 @@ async function runAutonomousSpider({
 
       if (crawlMode === 'price_finder') {
         // ====================================================================
-        // MODO PRICE FINDER: Radar e Extração Estruturada de Ofertas & Preços
+        // MODO PRICE FINDER INDUSTRIAL: Extração Híbrida + Filtragem de Outliers
         // ====================================================================
-        const productOffers = await page.evaluate(() => {
-          const cards = Array.from(
-            document.querySelectorAll(
-              '[data-testid="product-card"], .Hits_HitsList__item, .ui-search-result, .poly-card, .ui-search-layout__item, .andes-card, .s-result-item, .product-card, li.ui-search-layout__item'
-            )
-          );
-          const offers = [];
+        const rawOffers = await extractRawEcommerceOffersFromPage(page);
+        const {
+          accepted: filteredOffers,
+          rejectedCount,
+          medianPrice
+        } = filterAndScoreEcommerceOffers(rawOffers, objective);
 
-          function buildUniqueSelector(el, idx) {
-            el.setAttribute('data-arachne-target', `target-offer-${idx}`);
-            return `[data-arachne-target="target-offer-${idx}"]`;
-          }
-
-          let counter = 0;
-          for (const card of cards) {
-            const rect = card.getBoundingClientRect();
-            if (rect.width < 50 || rect.height < 50 || rect.top + window.scrollY > 4800) continue;
-
-            const text = (card.innerText || '').replace(/\s+/g, ' ');
-            const priceMatch = text.match(/(?:R\$|\$|US\$|€)\s*([0-9]{1,3}(?:[.,][0-9]{3})*(?:[.,][0-9]{2})|[0-9]+(?:[.,][0-9]{2})?)/);
-            if (!priceMatch) continue;
-
-            const titleEl = card.querySelector('[data-testid="product-card::name"], h2, .ui-search-item__title, .poly-component__title, a.title, .title');
-            const title = titleEl ? titleEl.innerText.trim() : text.slice(0, 68);
-
-            const linkEl = card.querySelector('a[href^="http"], a[href^="/"]');
-            let href = linkEl ? linkEl.href : null;
-
-            const instMatch = text.match(/\b([0-9]{1,2}x\s*(?:de\s*)?(?:R\$|\$)?\s*[0-9.,]+(?:\s*sem juros)?)/i);
-            const installmentStr = instMatch ? instMatch[1].trim() : 'À vista';
-
-            let shippingStr = 'Frete a calcular';
-            if (/frete gr[aá]tis/i.test(text)) {
-              shippingStr = 'Frete Grátis';
-            } else {
-              const shipPriceMatch = text.match(/frete\s*(?:de\s*)?(?:R\$|\$)?\s*([0-9.,]+)/i);
-              if (shipPriceMatch) shippingStr = `Frete: R$ ${shipPriceMatch[1]}`;
-            }
-
-            const sellerEl = card.querySelector('[data-testid="product-card::store"], [data-testid="product-card::merchant"], .ui-search-item__seller, .poly-component__seller, .seller');
-            let seller = sellerEl ? sellerEl.innerText.replace(/por\s+/i, '').trim() : null;
-
-            if (!seller) {
-              const storeMatch = text.match(/\b(?:na loja|no|pela|por)\s+([A-ZÁÉÍÓÚ][a-zA-Z0-9\s]{2,18})/i);
-              if (storeMatch) {
-                seller = storeMatch[1].trim();
-              } else {
-                seller = window.location.hostname.replace(/^(?:www\.)?(?:lista\.)?/, '').split('.')[0].toUpperCase();
-              }
-            }
-
-            offers.push({
-              uniqueSelector: buildUniqueSelector(card, counter++),
-              title: title.slice(0, 72),
-              rawPrice: priceMatch[0],
-              installmentStr,
-              shippingStr,
-              seller,
-              href,
-              x: rect.left + window.scrollX,
-              y: rect.top + window.scrollY,
-              width: rect.width,
-              height: rect.height
-            });
-
-            if (offers.length >= 8) break;
-          }
-
-          // Fallback para layouts de e-commerce genéricos
-          if (offers.length === 0) {
-            const priceElements = Array.from(document.querySelectorAll('*')).filter((el) => {
-              if (el.children.length > 2) return false;
-              const t = el.innerText || '';
-              return /(?:R\$|\$)\s*[0-9]{1,3}(?:[.,][0-9]{3})*/.test(t) && t.length < 80;
-            });
-            let fIdx = 0;
-            for (const pel of priceElements.slice(0, 8)) {
-              const r = pel.getBoundingClientRect();
-              if (r.width < 15 || r.height < 10) continue;
-              const t = pel.innerText.trim();
-              offers.push({
-                uniqueSelector: buildUniqueSelector(pel, fIdx++),
-                title: 'Oferta em Destaque',
-                rawPrice: t,
-                installmentStr: 'À vista',
-                shippingStr: 'Ver na Loja',
-                seller: window.location.hostname.replace(/^www\./, ''),
-                href: window.location.href,
-                x: r.left + window.scrollX,
-                y: r.top + window.scrollY,
-                width: r.width,
-                height: r.height
-              });
-            }
-          }
-
-          return offers;
+        io.emit('SPIDER_ACTION', {
+          treeId,
+          status: 'FILTERING_OFFERS',
+          message: `[${currentTask.sourceLabel || hostname}] ${filteredOffers.length} ofertas reais validadas (${rejectedCount} anúncios irrelevantes/outliers descartados).`,
+          url: currentTask.url
         });
 
-        for (const offer of productOffers) {
+        for (const offer of filteredOffers.slice(0, 7)) {
           const checkState = activeCrawlers.get(treeId);
           if (!checkState || checkState.stopRequested) break;
 
-          const numPrice = parsePriceToNumber(offer.rawPrice);
+          // Deduplicação global entre múltiplas páginas/buscas da mesma árvore
+          const fingerprint = `${offer.seller.toLowerCase()}|${offer.title.toLowerCase().slice(0, 38)}|${Math.round(offer.numericPrice)}`;
+          if (seenOfferFingerprints.has(fingerprint)) continue;
+          seenOfferFingerprints.add(fingerprint);
+
+          const numPrice = offer.numericPrice;
 
           io.emit('SPIDER_ACTION', {
             treeId,
             status: 'SCANNING_PRICE',
-            message: `[PRICE FINDER] ${offer.title} -> ${offer.rawPrice}`,
+            message: `[PRICE FINDER] ${offer.seller}: ${offer.title.slice(0, 48)} -> ${offer.rawPrice}`,
             selector: offer.uniqueSelector,
             url: offer.href || currentTask.url
           });
@@ -578,33 +502,48 @@ async function runAutonomousSpider({
                   await window.moveSpiderToElement({
                     selector,
                     mode: 'price',
-                    header: 'OFERTA DE MERCADO',
+                    header: 'OFERTA VALIDADA',
                     text
                   });
                 }
               },
-              { selector: offer.uniqueSelector, text: `${offer.rawPrice} - ${offer.title}` }
+              {
+                selector: offer.uniqueSelector,
+                text: `${offer.rawPrice} (${offer.seller}) - ${offer.title}`
+              }
             )
             .catch(() => {});
 
-          await page.waitForTimeout(650);
+          await page.waitForTimeout(480);
+
+          const offerAttributes = {
+            storeName: offer.seller,
+            productTitle: offer.title,
+            cashPrice: offer.rawPrice,
+            shipping: offer.shippingStr,
+            installment: offer.installmentStr || 'À vista',
+            relevanceScore: `${offer.relevanceScore}%`,
+            extractionMethod: offer.extractionMethod || offer.sourceType || 'DOM_ADAPTER'
+          };
+
+          if (offer.rating) offerAttributes.rating = `${offer.rating} / 5.0`;
+          if (offer.cashback) offerAttributes.cashback = offer.cashback;
+          if (offer.originalCardPrice && offer.originalCardPrice > numPrice) {
+            offerAttributes.cardPrice = formatBRL(offer.originalCardPrice);
+          }
+          if (offer.thumbnail) offerAttributes.thumbnail = offer.thumbnail;
+          if (medianPrice) offerAttributes.marketMedianRef = formatBRL(medianPrice);
 
           // 1. Nó de Oferta da Loja (store_offer)
           const storeNode = registerFormalNode({
             treeId,
             parentId: webpageNode.id,
             type: 'store_offer',
-            label: `${offer.seller} - ${offer.title.slice(0, 36)}`,
+            label: `${offer.seller} - ${offer.title.slice(0, 40)}`,
             edgeLabel: 'OFFERS_PRODUCT',
             formalData: {
               summary: offer.title,
-              attributes: {
-                storeName: offer.seller,
-                productTitle: offer.title,
-                cashPrice: offer.rawPrice,
-                shipping: offer.shippingStr,
-                installment: offer.installmentStr || 'À vista'
-              },
+              attributes: offerAttributes,
               numericPrice: numPrice,
               sourceUrl: offer.href || currentTask.url,
               domSelector: offer.uniqueSelector
@@ -619,11 +558,12 @@ async function runAutonomousSpider({
             label: `${offer.rawPrice} (PIX / À Vista)`,
             edgeLabel: 'CASH_PRICE',
             formalData: {
-              summary: `Preço à vista / PIX: ${offer.rawPrice}`,
+              summary: `Preço à vista / PIX verificado em ${offer.seller}: ${offer.rawPrice}`,
               attributes: {
                 storeName: offer.seller,
                 productTitle: offer.title,
-                cashPrice: offer.rawPrice
+                cashPrice: offer.rawPrice,
+                relevanceScore: `${offer.relevanceScore}%`
               },
               numericPrice: numPrice,
               sourceUrl: offer.href || currentTask.url,
@@ -640,7 +580,7 @@ async function runAutonomousSpider({
               label: offer.installmentStr,
               edgeLabel: 'INSTALLMENT_TERMS',
               formalData: {
-                summary: `Condição de parcelamento: ${offer.installmentStr}`,
+                summary: `Condição de parcelamento em ${offer.seller}: ${offer.installmentStr}`,
                 attributes: { installmentTerms: offer.installmentStr },
                 sourceUrl: offer.href || currentTask.url,
                 domSelector: offer.uniqueSelector
@@ -648,17 +588,20 @@ async function runAutonomousSpider({
             });
           }
 
-          // 4. Nó de Frete (shipping_cost)
+          // 4. Nó de Frete / Cashback (shipping_cost)
           if (offer.shippingStr) {
             registerFormalNode({
               treeId,
               parentId: storeNode.id,
               type: 'shipping_cost',
-              label: offer.shippingStr,
+              label: offer.cashback ? `${offer.shippingStr} • ${offer.cashback}` : offer.shippingStr,
               edgeLabel: 'SHIPPING_INFO',
               formalData: {
-                summary: `Condições de envio: ${offer.shippingStr}`,
-                attributes: { shippingDetails: offer.shippingStr },
+                summary: `Condições de entrega: ${offer.shippingStr}${offer.cashback ? ` (${offer.cashback})` : ''}`,
+                attributes: {
+                  shippingDetails: offer.shippingStr,
+                  ...(offer.cashback ? { cashback: offer.cashback } : {})
+                },
                 sourceUrl: offer.href || currentTask.url,
                 domSelector: offer.uniqueSelector
               }
@@ -666,104 +609,105 @@ async function runAutonomousSpider({
           }
         }
 
-        // Calcula imediatamente o menor preço e destaca o vencedor com o selo
+        // Recalcula o menor preço global da árvore entre todas as lojas mapeadas até agora
         recalculateBestPriceForTree(treeId);
 
       } else {
         // ====================================================================
-        // MODO MAPEAMENTO MENTAL: Coleta Conceitual, Artigos e Entidades
+        // MODO MAPEAMENTO MENTAL PROFUNDO: Metadados, Tabelas HTML e Entidades
         // ====================================================================
-        const candidateElements = await page.evaluate((keywords) => {
-          const nodes = Array.from(
-            document.querySelectorAll('h1, h2, h3, p, span, li, td, a, button')
-          );
-          const results = [];
+        const deepKnowledge = await extractDeepKnowledgeFromPage(page, objectiveKeywords);
 
-          function buildUniqueSelector(el, idx) {
-            el.setAttribute('data-arachne-target', `target-${idx}`);
-            return `[data-arachne-target="target-${idx}"]`;
+        // Atualiza metadados ricos no nó da Webpage (tempo de leitura, autor, contagem de palavras)
+        if (deepKnowledge.metadata) {
+          webpageNode.formalData.attributes = {
+            ...webpageNode.formalData.attributes,
+            ...(deepKnowledge.metadata.siteName ? { siteName: deepKnowledge.metadata.siteName } : {}),
+            ...(deepKnowledge.metadata.author ? { author: deepKnowledge.metadata.author } : {}),
+            ...(deepKnowledge.metadata.publishedTime ? { publishedTime: deepKnowledge.metadata.publishedTime } : {}),
+            wordCount: deepKnowledge.metadata.wordCount,
+            readingTimeMinutes: `${deepKnowledge.metadata.readingTimeMinutes} min`
+          };
+          if (deepKnowledge.metadata.description && !pageInfo.metaDesc) {
+            webpageNode.formalData.summary = deepKnowledge.metadata.description;
           }
+          io.emit('NODE_UPDATED', webpageNode);
+        }
 
-          function getCssPath(el) {
-            const tag = el.tagName.toLowerCase();
-            const id = el.id ? `#${el.id}` : '';
-            const cls =
-              el.className && typeof el.className === 'string'
-                ? '.' +
-                  el.className
-                    .trim()
-                    .split(/\s+/)
-                    .slice(0, 2)
-                    .join('.')
-                : '';
-            return `${tag}${id}${cls}`;
-          }
+        // 1. Registra Tabelas Estruturadas extraídas da página (nó data_table)
+        if (Array.isArray(deepKnowledge.tables)) {
+          for (const tbl of deepKnowledge.tables) {
+            const checkState = activeCrawlers.get(treeId);
+            if (!checkState || checkState.stopRequested) break;
 
-          let counter = 0;
-          for (const el of nodes) {
-            if (el.id === 'arachnemind-canvas-overlay') continue;
-            const rect = el.getBoundingClientRect();
-            if (rect.width < 20 || rect.height < 12) continue;
-            if (rect.top + window.scrollY > 4200) continue;
+            io.emit('SPIDER_ACTION', {
+              treeId,
+              status: 'EXTRACTING_TABLE',
+              message: `Extraindo Tabela Estruturada: "${tbl.caption}" (${tbl.rowCount} linhas)`,
+              selector: tbl.formalSelector,
+              url: currentTask.url
+            });
 
-            const rawText = (el.innerText || el.textContent || '').replace(/\s+/g, ' ').trim();
-            if (rawText.length < 15 || rawText.length > 460) continue;
+            await page
+              .evaluate(
+                async ({ selector, text }) => {
+                  if (typeof window.moveSpiderToElement === 'function') {
+                    await window.moveSpiderToElement({
+                      selector,
+                      mode: 'extract',
+                      header: 'TABELA ESTRUTURADA',
+                      text
+                    });
+                  }
+                },
+                {
+                  selector: tbl.uniqueSelector,
+                  text: `${tbl.caption} (${tbl.headers.slice(0, 4).join(' | ')})`
+                }
+              )
+              .catch(() => {});
 
-            const tag = el.tagName.toLowerCase();
-            const lowerText = rawText.toLowerCase();
+            await page.waitForTimeout(450);
 
-            let score = 1;
-            if (tag === 'h1' || tag === 'h2' || tag === 'h3') score += 4;
-            if (/\d/.test(rawText)) score += 2;
-            if (/(?:R\$|\$|€|%|\b202\d\b)/.test(rawText)) score += 4;
+            const tableAttributes = {
+              tableCaption: tbl.caption,
+              columns: tbl.headers.join(' | '),
+              rowCount: tbl.rowCount
+            };
+            // Adiciona as primeiras linhas como atributos chave-valor legíveis no Inspetor
+            tbl.rows.slice(0, 6).forEach((row, rIdx) => {
+              const rowKey = row[0] ? String(row[0]).slice(0, 32) : `Linha ${rIdx + 1}`;
+              const rowVals = row.slice(1).join(' | ') || row[0] || '';
+              tableAttributes[rowKey] = rowVals.slice(0, 120);
+            });
 
-            for (const kw of keywords) {
-              if (lowerText.includes(kw)) score += 6;
-            }
-
-            let href = null;
-            if (tag === 'a' && el.href && /^https?:\/\//i.test(el.href)) {
-              href = el.href;
-              score += 2;
-            }
-
-            const uniqueSelector = buildUniqueSelector(el, counter++);
-            results.push({
-              uniqueSelector,
-              formalSelector: getCssPath(el),
-              tag,
-              text: rawText,
-              href,
-              score,
-              x: rect.left + window.scrollX,
-              y: rect.top + window.scrollY,
-              width: rect.width,
-              height: rect.height
+            registerFormalNode({
+              treeId,
+              parentId: webpageNode.id,
+              type: 'data_table',
+              label: `📊 Tabela: ${tbl.caption.slice(0, 46)}`,
+              edgeLabel: 'HAS_DATA_TABLE',
+              formalData: {
+                summary: tbl.markdownPreview,
+                attributes: tableAttributes,
+                sourceUrl: currentTask.url,
+                domSelector: tbl.formalSelector
+              }
             });
           }
+        }
 
-          const seenTexts = new Set();
-          return results
-            .filter((item) => {
-              const key = item.text.slice(0, 50).toLowerCase();
-              if (seenTexts.has(key)) return false;
-              seenTexts.add(key);
-              return true;
-            })
-            .sort((a, b) => b.score - a.score)
-            .slice(0, 10);
-        }, objectiveKeywords);
-
+        // 2. Registra Seções Hierárquicas, Fatos Analíticos e Referências
         let currentEntityNodeId = webpageNode.id;
 
-        for (const item of candidateElements) {
+        for (const item of deepKnowledge.items || []) {
           const checkState = activeCrawlers.get(treeId);
           if (!checkState || checkState.stopRequested) break;
 
           io.emit('SPIDER_ACTION', {
             treeId,
             status: 'SCANNING_ELEMENT',
-            message: `Inspecionando <${item.tag}>: "${item.text.slice(0, 58)}..."`,
+            message: `Extraindo [${item.kind.toUpperCase()}] <${item.tag}>: "${item.text.slice(0, 56)}..."`,
             selector: item.formalSelector,
             url: currentTask.url
           });
@@ -784,24 +728,31 @@ async function runAutonomousSpider({
             )
             .catch(() => {});
 
-          await page.waitForTimeout(520);
+          await page.waitForTimeout(440);
 
-          const attributes = extractFormalAttributes(item.text, item, objectiveKeywords);
+          const attributes = {
+            ...extractFormalAttributes(item.text, item, objectiveKeywords),
+            sectionContext: item.section || 'Visão Geral',
+            relevanceScore: item.score
+          };
 
-          const isEntityHeading = ['h1', 'h2', 'h3'].includes(item.tag);
-          const nodeType = isEntityHeading || item.href ? 'extracted_entity' : 'data_point';
-          const parentForThisNode = isEntityHeading ? webpageNode.id : currentEntityNodeId;
+          const isSectionHeading = item.kind === 'section_heading';
+          const nodeType =
+            isSectionHeading || item.kind === 'reference_link'
+              ? 'extracted_entity'
+              : 'data_point';
+          const parentForThisNode = isSectionHeading ? webpageNode.id : currentEntityNodeId;
 
           const createdNode = registerFormalNode({
             treeId,
             parentId: parentForThisNode,
             type: nodeType,
-            label: item.text.slice(0, 54),
-            edgeLabel: isEntityHeading
+            label: item.text.slice(0, 56),
+            edgeLabel: isSectionHeading
               ? 'HAS_SECTION_ENTITY'
               : item.href
               ? 'REFERENCES_LINK'
-              : 'EXTRACTED_DATA',
+              : 'EXTRACTED_FACT',
             formalData: {
               summary: item.text,
               attributes,
@@ -810,7 +761,7 @@ async function runAutonomousSpider({
             }
           });
 
-          if (isEntityHeading) {
+          if (isSectionHeading) {
             currentEntityNodeId = createdNode.id;
           }
 
@@ -822,6 +773,7 @@ async function runAutonomousSpider({
           ) {
             discoveredLinks.push({
               url: item.href,
+              sourceLabel: hostname,
               parentId: createdNode.id,
               depth: currentTask.depth + 1
             });
@@ -1235,6 +1187,12 @@ function getTreeComparativeQuotes(treeId) {
     const shippingStr = shippingChild?.label ?? store.formalData?.attributes?.shipping ?? 'Frete a calcular';
     const directUrl = store.formalData?.sourceUrl || cashChild?.formalData?.sourceUrl || '';
     const isBest = !!(store.isBestPrice || cashChild?.isBestPrice);
+    const thumbnail = store.formalData?.attributes?.thumbnail || null;
+    const rating = store.formalData?.attributes?.rating || null;
+    const cashback = store.formalData?.attributes?.cashback || null;
+    const relevanceScore = store.formalData?.attributes?.relevanceScore || null;
+    const extractionMethod = store.formalData?.attributes?.extractionMethod || null;
+    const cardPrice = store.formalData?.attributes?.cardPrice || null;
 
     quotes.push({
       storeNodeId: store.id,
@@ -1246,6 +1204,12 @@ function getTreeComparativeQuotes(treeId) {
       installmentStr,
       shippingStr,
       directUrl,
+      thumbnail,
+      rating,
+      cashback,
+      relevanceScore,
+      extractionMethod,
+      cardPrice,
       isBestPrice: isBest
     });
   }
@@ -1266,6 +1230,13 @@ function getTreeComparativeQuotes(treeId) {
       ? validPrices.reduce((a, b) => a + b, 0) / validPrices.length
       : 0;
   const minPrice = validPrices.length > 0 ? Math.min(...validPrices) : 0;
+  let medianPrice = 0;
+  if (validPrices.length > 0) {
+    const sorted = [...validPrices].sort((a, b) => a - b);
+    const mid = Math.floor(sorted.length / 2);
+    medianPrice =
+      sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
+  }
 
   // Atribui ranking e calcula economia vs maior e vs média
   const ranked = quotes.map((q, idx) => {
@@ -1296,6 +1267,7 @@ function getTreeComparativeQuotes(treeId) {
     minPrice,
     maxPrice,
     avgPrice: Math.round(avgPrice * 100) / 100,
+    medianPrice: Math.round(medianPrice * 100) / 100,
     quotes: ranked
   };
 }
@@ -1310,6 +1282,41 @@ app.get('/api/trees/:treeId/quotes', (req, res) => {
     return res.status(404).json({ error: 'Árvore não encontrada.' });
   }
   res.json(comparison);
+});
+
+/**
+ * 8B. Re-escanear / Atualizar Preços de uma Árvore Existente
+ */
+app.post('/api/trees/:treeId/refresh', (req, res) => {
+  const { treeId } = req.params;
+  const tree = db.trees.find((t) => t.id === treeId);
+  if (!tree) {
+    return res.status(404).json({ error: 'Árvore não encontrada.' });
+  }
+
+  if (activeCrawlers.has(treeId)) {
+    return res.status(409).json({ error: 'A aranha já está em execução para esta árvore.' });
+  }
+
+  const rootNode = db.nodes.find(
+    (n) => n.treeId === treeId && (!n.parentId || n.type === 'product_root' || n.type === 'root_topic')
+  );
+
+  runAutonomousSpider({
+    treeId: tree.id,
+    parentNodeId: rootNode ? rootNode.id : null,
+    objective: tree.objective,
+    startUrl: null,
+    crawlMode: tree.crawlMode || 'price_finder',
+    targetPrice: tree.targetPrice || null,
+    maxDepth: 2,
+    maxPages: 3
+  });
+
+  res.json({
+    message: `Re-escaneamento multi-lojas iniciado para "${tree.title}".`,
+    treeId: tree.id
+  });
 });
 
 /**

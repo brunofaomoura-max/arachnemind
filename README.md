@@ -64,15 +64,21 @@ Os nos e arestas resultantes sao despachados via WebSockets (Socket.io) para o f
 O sistema opera sob dois modos estrategicos especializados:
 
 ### 1. Modo Price Finder (Radar de Precos)
-Projetado para agregacao, analise de dispersao de precos e monitoramento de e-commerce.
-- **Extracao Estruturada:** Captura titulos de produtos, preco a vista (PIX/Boleto), condicoes de parcelamento, custos de frete e links diretos da loja.
-- **Radar de Melhor Oferta:** Identifica automaticamente o menor valor numérico entre todas as lojas mapeadas e destaca o no vencedor no grafo com halo pulsante em esmeralda/dourado e badge de Melhor Preco.
-- **Gaveta de Cotacao Comparativa:** Painel analitico com tabela ranqueada (do menor para o maior preco), exibindo a economia percentual em relacao ao maior preco e a media de mercado.
+Projetado para agregacao multi-marketplace, analise estatistica de dispersao de precos e monitoramento de e-commerce.
+- **Fila Multi-Marketplace Automatica:** Ao iniciar uma busca por produto sem URL fixa, o motor consulta sequencialmente multiplos agregadores e varejistas (Buscape, Amazon Brasil, KaBuM! e Zoom), consolidando ofertas de dezenas de lojas brasileiras em uma unica arvore.
+- **Motor de Extracao Hibrido de 4 Camadas:**
+  1. **Hydration State (`__NEXT_DATA__`):** Extracao direta da arvore JSON de estado em portais baseados em Next.js (como KaBuM!), obtendo precos exatos com desconto no PIX, valores originais no cartao, avaliacoes e imagens em alta resolucao.
+  2. **Schema.org JSON-LD (`application/ld+json`):** Leitura de metadados estruturados `Product`, `AggregateOffer` e `ItemList`.
+  3. **Adaptadores DOM Especializados:** Seletores dedicados para Amazon Brasil (`s-result-item`), Buscape e Zoom (`[data-testid="product-card"]`), isolando corretamente o nome real da loja parceira, selos de cashback e avaliacoes.
+  4. **Heuristica Geometrica Universal:** Fallback baseado nas dimensoes fisicas dos containers no viewport e expressoes regulares monetarias.
+- **Filtragem Estatistica de Outliers e Desambiguacao:** O motor valida tokens numericos de modelo/especificacao (evitando anuncios patrocinados de produtos concorrentes), descarta acessorios avulsos (cabos, capas, peliculas, suportes) ou computadores completos quando a busca e por um componente individual, e aplica corte estatistico baseado na mediana de mercado para impedir distorcoes no ranking.
+- **Radar de Melhor Oferta e Gaveta Comparativa:** Identifica automaticamente o menor valor numerico validado, destaca o no vencedor no grafo e apresenta estatisticas de menor preco, mediana e maior preco com miniaturas de produto, notas de avaliacao, cashback e botao de re-escaneamento sob demanda.
 
 ### 2. Modo Mapeamento Mental
-Voltado para pesquisa exploratoria, revisao bibliografica e extracao de corpus textual.
-- **Hierarquia Semantica:** Classifica o conteudo em nos de Dominio Web, Paginas HTML, Cabecalhos estruturais (h1 a h3), Entidades nomeadas e Dados Formais.
-- **Conexoes Transversais (Global Brain):** Identifica sinapses e termos correlatos compartilhados entre sessoes de pesquisa distintas.
+Voltado para pesquisa exploratoria, revisao bibliografica e extracao profunda de artigos e documentacoes tecnicas.
+- **Isolamento Semantico de Conteudo:** Filtra barras de navegacao, rodapes e menus laterais para focar no container principal do artigo (`article`, `main`, `.mw-parser-output`), extraindo metadados de autoria, data de publicacao, contagem de palavras e tempo estimado de leitura.
+- **Extracao Nativa de Tabelas HTML (`data_table`):** Localiza tabelas de dados na pagina, converte suas colunas e linhas para formato estruturado chave-valor e gera previews em Markdown diretamente inspecionaveis no grafo.
+- **Hierarquia Conceitual e Global Brain:** Classifica o conteudo em nos de Dominio Web, Paginas HTML, Tabelas Estruturadas, Secoes (`h1` a `h3`), Entidades e Fatos Analiticos pontuados por densidade numerica e aderencia ao objetivo.
 
 ---
 

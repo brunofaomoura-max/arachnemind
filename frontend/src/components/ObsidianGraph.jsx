@@ -64,6 +64,12 @@ export const NODE_STYLE_MAP = {
     radius: 6,
     badge: 'Entidade / Link'
   },
+  data_table: {
+    color: '#06b6d4',
+    glow: 'rgba(6, 182, 212, 0.55)',
+    radius: 7.5,
+    badge: 'Tabela Estruturada'
+  },
   data_point: {
     color: '#eab308',
     glow: 'rgba(234, 179, 8, 0.4)',
@@ -338,8 +344,9 @@ export default function ObsidianGraph({
               <option value="shipping_cost">🚚 Frete</option>
               <option value="root_topic">🧠 Tópicos Raiz</option>
               <option value="webpage">🌐 Páginas Web</option>
+              <option value="data_table">📊 Tabelas Estruturadas</option>
               <option value="extracted_entity">📎 Entidades</option>
-              <option value="data_point">📊 Dados Formais</option>
+              <option value="data_point">📌 Dados Formais</option>
             </select>
           </div>
         </div>

@@ -15,8 +15,15 @@ dist/
 frontend/dist/
 build/
 
-# Temporary / Scratch
+# Temporary / Scratch / Local Workspace Config
+.agents/
 skillspector-repo/
+backend/data/*.json
+audit_and_clean_skills.py
+fast_audit_and_clean.py
+scan_report*.json
+skills_security_audit.json
+vercel_skills_audit.json
 *.log
 
 # OS generated files

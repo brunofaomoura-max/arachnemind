@@ -18,6 +18,7 @@ build/
 # Temporary / Scratch / Local Workspace Config
 .agents/
 skillspector-repo/
+ml-ecommerce-price-predictor/
 backend/data/*.json
 audit_and_clean_skills.py
 fast_audit_and_clean.py

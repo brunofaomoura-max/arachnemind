@@ -10,20 +10,31 @@
 [![Tailwind CSS](https://img.shields.io/badge/TailwindCSS-3-38B2AC?logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-ArachneMind e uma plataforma full-stack para exploracao e extracao estruturada de dados da web. O sistema combina uma engine procedural de inspecao visual no Document Object Model (DOM) com resolucao de cinematica inversa (Inverse Kinematics - IK) e um grafo de conhecimento bidimensional interativo no padrao Obsidian para mapeamento conceitual e comparacao de precos em tempo real.
+ArachneMind e uma plataforma full-stack de alto desempenho para exploracao autonoma, inspecao geometrica no Document Object Model (DOM) e extracao de dados estruturados da web. O sistema combina uma engine procedural de rastreamento visual executada em navegadores visiveis com resolucao de cinematica inversa analitica (Inverse Kinematics - IK), integrando os resultados em tempo real a um grafo de conhecimento bidimensional interativo no padrao Obsidian para mapeamento conceitual e comparacao de precos em multiplos marketplaces.
+
+---
+
+## Demonstracao Visual do Sistema
+
+![ArachneMind Autonomous Spider Crawling Demo](docs/assets/spider-crawler-demo.gif)
+*Figura 1: Aranha procedural autonoma (8 apendices com IK de 2 articulacoes) navegando e inspecionando elementos e ofertas em tempo real sobre o DOM.*
 
 ---
 
 ## Sumario
 
 - [Visao Geral](#visao-geral)
-- [Arquitetura do Sistema](#arquitetura-do-sistema)
-- [Modos de Operacao](#modos-de-operacao)
-  - [Price Finder](#1-modo-price-finder-radar-de-precos)
-  - [Mapeamento Mental](#2-modo-mapeamento-mental)
-- [Motor Procedural de Inspecao Visual (IK Solver)](#motor-procedural-de-inspecao-visual-ik-solver)
-- [Sentinela de Preco e Alertas](#sentinela-de-preco-e-alertas)
-- [Exportacao de Dados](#exportacao-de-dados)
+- [Tour Visual da Interface](#tour-visual-da-interface)
+  - [Painel Principal e Grafo de Conhecimento](#1-painel-principal-e-grafo-de-conhecimento)
+  - [Inspecao Procedural com Cinemática Inversa (IK)](#2-inspecao-procedural-com-cinematica-inversa-ik)
+  - [Gaveta de Cotacao Comparativa e Sentinela de Preco](#3-gaveta-de-cotacao-comparativa-e-sentinela-de-preco)
+  - [Mapeamento Mental e Extracao Estruturada de Tabelas HTML](#4-mapeamento-mental-e-extracao-estruturada-de-tabelas-html)
+- [Arquitetura de Software](#arquitetura-de-software)
+- [Motor Hibrido de Extracao de 4 Camadas](#motor-hibrido-de-extracao-de-4-camadas)
+- [Filtragem Estatistica de Outliers e Acessorios](#filtragem-estatistica-de-outliers-e-acessorios)
+- [Sentinela de Preco e Alerta Sonoro Polifonico](#sentinela-de-preco-e-alerta-sonoro-polifonico)
+- [Especificacao da API REST](#especificacao-da-api-rest)
+- [Formatos de Exportacao](#formatos-de-exportacao)
 - [Pilha Tecnologica](#pilha-tecnologica)
 - [Instalacao e Execucao](#instalacao-e-execucao)
 - [Auditoria de Seguranca](#auditoria-de-seguranca)
@@ -33,142 +44,208 @@ ArachneMind e uma plataforma full-stack para exploracao e extracao estruturada d
 
 ## Visao Geral
 
-Diferente dos crawlers convencionais que operam de maneira estatica ou headless sem feedback contextual, o ArachneMind executa navegadores Chromium visiveis atraves do Playwright, injetando uma camada de inspecao procedural que localiza, valida e extrai dados diretamente da geometria do DOM.
+Diferente de raspadores estaticos convencionais baseados em HTTP puro ou motores headless sem telemetria em tempo real, o ArachneMind orquestra navegadores Chromium visiveis atraves do Playwright, injetando uma camada grafica procedural em HTML5 Canvas sobre o viewport. A aranha localiza elementos por proximidade euclidiana, projeta feixes direcionais de colimacao sobre nos de texto ou precos e extrai metadados normalizados.
 
-Os nos e arestas resultantes sao despachados via WebSockets (Socket.io) para o frontend em React, onde um motor de fisica baseada em forcas (Force-Directed Graph) organiza entidades, dominios, paginas, termos de parcelamento e precos em tempo real.
+Simultaneamente, os nos e conexoes estruturados sao despachados via WebSockets (Socket.io) para o cliente React, onde um motor de simulacao elastica orientada a forcas (Force-Directed Graph via D3.js) calcula posicoes, gravidade e repulsao eletrostatica em 60 quadros por segundo.
 
 ---
 
-## Arquitetura do Sistema
+## Tour Visual da Interface
+
+### 1. Painel Principal e Grafo de Conhecimento
+
+O workspace unificado disponibiliza a barra lateral de sessoes ativas, o visualizador central force-directed e a gaveta analitica lateral.
+
+![ArachneMind Obsidian Knowledge Graph Workspace](docs/assets/arachnemind-workspace-overview.png)
+*Figura 2: Workspace operacional completo do ArachneMind com nos de produto, ofertas de lojas, valores a vista no PIX com selo pulsante de Melhor Preco e conexoes sinapticas.*
+
+### 2. Inspecao Procedural com Cinemática Inversa (IK)
+
+A camada grafica no navegador resolve a fisica dos membros utilizando cinematica analitica em tempo real:
+
+![ArachneMind Procedural Spider Overlay & DOM Laser HUD](docs/assets/spider-inspection-overlay.png)
+*Figura 3: Motor grafico da aranha resolvendo a marcha tetrapode (Tetrapod Gait) e disparando feixes colimados de medicao com reticulo holografico de telemetria.*
+
+- **Resolucao Trigonometrica:** Cada perna calcula os angulos de femuro e tibia atraves da Lei dos Cossenos, adaptando a extensao dinamicamente as dimensoes da tela.
+- **Tetrapod Gait:** Marcha coordenada alternando grupos de apoio e elevacao para simular a marcha biologica de aracnideos sobre os blocos visuais do DOM.
+- **Magnifier HUD:** Reticulo colimado no topo da viewport indicando seletores CSS formais, tags semanticas e o valor numerico validado.
+
+### 3. Gaveta de Cotacao Comparativa e Sentinela de Preco
+
+Projetada para analise de dispersao de precos e identificacao instantanea da melhor condicao comercial entre multiplos varejistas (Buscape, Amazon Brasil, KaBuM! e Zoom).
+
+![ArachneMind Price Finder Quotation Drawer](docs/assets/price-finder-quotation-drawer.png)
+*Figura 4: Gaveta analitica com card de Melhor Preco Encontrado, diferenca percentual vs maior preco, Sentinela de Preco Alvo e ranking tabular por loja.*
+
+- **Card de Melhor Oferta:** Destaque numerico do menor valor encontrado com calculo automatico de economia percentual frente a media e ao maior preco coletado.
+- **Painel de Sentinela:** Monitoramento de preco alvo com disparo automatico de sinal polifonico via Web Audio API assim que uma oferta atinge o limite estipulado.
+- **Tabela Ranqueada:** Ordenacao crescente com identificacao de vendedor, miniatura do produto, condicoes de parcelamento no cartao, status de frete e links diretos para compra.
+
+### 4. Mapeamento Mental e Extracao Estruturada de Tabelas HTML
+
+No modo conceitual, o ArachneMind realiza a digestao semantica de artigos, documentacoes tecnicas e bases de conhecimento (ex: Wikipedia).
+
+![ArachneMind Mind Map & Structured Data Table Extraction](docs/assets/mind-map-knowledge-graph.png)
+*Figura 5: Grafo conceitual em modo Mapeamento Mental com nos de Dominio Web, Paginas HTML, Tabelas Estruturadas (`data_table`) e Fatos Analiticos pontuados por densidade metrica.*
+
+- **Isolamento de Corpus:** Descarte de barras de navegacao, rodapes, secoes de login e banners de consentimento LGPD para concentrar a analise no conteudo substantivo (`article`, `main`, `.mw-parser-output`).
+- **Parsing Estruturado de Tabelas HTML:** Conversao direta de elementos `<table>` em nos formais com atributos de colunas/linhas e preview formatado em Markdown.
+- **Sinapses Transversais (Global Brain):** Mecanismo de hashing semantico que interliga automaticamente sessoes de pesquisa diferentes que compartilham dominios ou termos conceituais em comum.
+
+---
+
+## Arquitetura de Software
 
 ```
-+-----------------------------------------------------------------------+
-|                         ARACHNEMIND PLATFORM                          |
-+-----------------------------------+-----------------------------------+
-|              BACKEND              |             FRONTEND              |
-|       (Node.js / Express)         |      (React 18 / Tailwind)        |
-+-----------------------------------+-----------------------------------+
-| - Playwright Browser Controller   | - Interactive 2D Canvas (D3-force)|
-| - Inverse Kinematics (IK) Engine  | - Real-time Socket.io Client      |
-| - Price Normalizer & Aggregator   | - Comparative Quotation Drawer    |
-| - Quotation CSV / MD Exporters    | - Web Audio API Alert Synthesizer |
-| - REST API & WebSocket Server     | - Workspace & Session Management  |
-+-----------------------------------+-----------------------------------+
-                  |                                   ^
-                  |           WebSocket / REST        |
-                  +───────────────────────────────────+
++-----------------------------------------------------------------------------------------+
+|                                  ARACHNEMIND ECOSYSTEM                                  |
++--------------------------------------------+--------------------------------------------+
+|                  BACKEND                   |                  FRONTEND                  |
+|             (Node.js / Express)            |          (React 18 / Vite / Tailwind)      |
++--------------------------------------------+--------------------------------------------+
+|                                            |                                            |
+|  [Playwright Visible Chromium Engine]      |  [Force-Directed 2D Graph Engine]          |
+|    |-> HTML5 Canvas IK Spider Overlay      |    |-> D3.js Force Simulation Engine       |
+|    |-> 4-Layer Hybrid Scraping Engine      |    |-> Canvas 2D Node Renderer with Pulses |
+|    |-> Multi-Store Queue Orchestrator      |    \-> Synaptic Cross-Tree Links           |
+|                                            |                                            |
+|  [Core Processing & Business Logic]        |  [Analytics & User Controls]               |
+|    |-> Statistical Median Outlier Filter   |    |-> Comparative Quotation Drawer        |
+|    |-> Model Token Strict Matcher          |    |-> Web Audio API Harmonic Alert Synthesizer|
+|    |-> HTML Table to Markdown Converter    |    |-> Workspace Manager (Price vs Mind Map)|
+|    |-> Real-time WebSocket Broadcaster     |    \-> Obsidian Vault / CSV Exporters      |
+|                                            |                                            |
++--------------------------------------------+--------------------------------------------+
+                      |                                            ^
+                      |         Socket.io Events & REST API        |
+                      +────────────────────────────────────────────+
 ```
 
 ---
 
-## Modos de Operacao
+## Motor Hibrido de Extracao de 4 Camadas
 
-O sistema opera sob dois modos estrategicos especializados:
+O mecanismo implementado em `backend/src/scraper-engine.js` processa paginas web por meio de quatro estrategias coordenadas de extracao:
 
-### 1. Modo Price Finder (Radar de Precos)
-Projetado para agregacao multi-marketplace, analise estatistica de dispersao de precos e monitoramento de e-commerce.
-- **Fila Multi-Marketplace Automatica:** Ao iniciar uma busca por produto sem URL fixa, o motor consulta sequencialmente multiplos agregadores e varejistas (Buscape, Amazon Brasil, KaBuM! e Zoom), consolidando ofertas de dezenas de lojas brasileiras em uma unica arvore.
-- **Motor de Extracao Hibrido de 4 Camadas:**
-  1. **Hydration State (`__NEXT_DATA__`):** Extracao direta da arvore JSON de estado em portais baseados em Next.js (como KaBuM!), obtendo precos exatos com desconto no PIX, valores originais no cartao, avaliacoes e imagens em alta resolucao.
-  2. **Schema.org JSON-LD (`application/ld+json`):** Leitura de metadados estruturados `Product`, `AggregateOffer` e `ItemList`.
-  3. **Adaptadores DOM Especializados:** Seletores dedicados para Amazon Brasil (`s-result-item`), Buscape e Zoom (`[data-testid="product-card"]`), isolando corretamente o nome real da loja parceira, selos de cashback e avaliacoes.
-  4. **Heuristica Geometrica Universal:** Fallback baseado nas dimensoes fisicas dos containers no viewport e expressoes regulares monetarias.
-- **Filtragem Estatistica de Outliers e Desambiguacao:** O motor valida tokens numericos de modelo/especificacao (evitando anuncios patrocinados de produtos concorrentes), descarta acessorios avulsos (cabos, capas, peliculas, suportes) ou computadores completos quando a busca e por um componente individual, e aplica corte estatistico baseado na mediana de mercado para impedir distorcoes no ranking.
-- **Radar de Melhor Oferta e Gaveta Comparativa:** Identifica automaticamente o menor valor numerico validado, destaca o no vencedor no grafo e apresenta estatisticas de menor preco, mediana e maior preco com miniaturas de produto, notas de avaliacao, cashback e botao de re-escaneamento sob demanda.
-
-### 2. Modo Mapeamento Mental
-Voltado para pesquisa exploratoria, revisao bibliografica e extracao profunda de artigos e documentacoes tecnicas.
-- **Isolamento Semantico de Conteudo:** Filtra barras de navegacao, rodapes e menus laterais para focar no container principal do artigo (`article`, `main`, `.mw-parser-output`), extraindo metadados de autoria, data de publicacao, contagem de palavras e tempo estimado de leitura.
-- **Extracao Nativa de Tabelas HTML (`data_table`):** Localiza tabelas de dados na pagina, converte suas colunas e linhas para formato estruturado chave-valor e gera previews em Markdown diretamente inspecionaveis no grafo.
-- **Hierarquia Conceitual e Global Brain:** Classifica o conteudo em nos de Dominio Web, Paginas HTML, Tabelas Estruturadas, Secoes (`h1` a `h3`), Entidades e Fatos Analiticos pontuados por densidade numerica e aderencia ao objetivo.
+| Camada | Estrategia | Escopo de Aplicacao | Dados Extraidos |
+| :--- | :--- | :--- | :--- |
+| **Camada 1** | Hydration State (`__NEXT_DATA__`) | Portais baseados em Next.js (KaBuM!, etc.) | Precos liquidos no PIX, valores brutos no cartao, avaliacoes, fotos de alta resolucao e codigos SKU. |
+| **Camada 2** | Schema.org JSON-LD | Paginas com microdados semanticos estruturados | Objetos formais `Product`, `Offer`, `AggregateOffer` e colecoes `ItemList`. |
+| **Camada 3** | Adaptadores DOM Especializados | Amazon Brasil, Buscape e Zoom | Titulos limpos, nomes de lojas parceiras, selos de cashback, parcelamento e frete gratis. |
+| **Camada 4** | Heuristica Visual Geometrica | E-commerces genericos e paginas sem metadados | Identificacao de cards por bounding box no viewport e parsing monetario regex. |
 
 ---
 
-## Motor Procedural de Inspecao Visual (IK Solver)
+## Filtragem Estatistica de Outliers e Acessorios
 
-A camada visual injetada no navegador executa um solver analitico de cinematica inversa de dois segmentos osso/articulacao:
+Para garantir que o radar de precos apresente apenas ofertas legitimas do produto pesquisado sem ser ludibriado por anuncios patrocinados ou pecas acessorias, o motor aplica regras estritas de validacao:
 
-- **Calculo Trigonometrico:** Cada apendice resolve seus angulos articulares em tempo real por meio da Lei dos Cossenos, garantindo transicoes suaves a 60 quadros por segundo.
-- **Tetrapod Gait:** Marcha coordenada baseada em estados de apoio e elevacao, ancorando os pontos de contato nas coordenadas reais retornadas por `getBoundingClientRect()`.
-- **Raios Direcionais:** Feixes colimados indicam visualmente qual elemento e atributo esta sendo submetido ao processo de parsing.
-- **Magnifier HUD:** Reticulo holografico que projeta no topo do viewport a tag do elemento, caminho CSS e o texto extraido.
-
----
-
-## Sentinela de Preco e Alertas
-
-- **Preco Alvo:** O operador define um valor limite para o produto monitorado.
-- **Sintetizador de Audio Nativo:** Em conformidade com a Web Audio API, o sistema sintetiza um acorde harmonico em frequencias senoidais duplas no exato milissegundo em que uma oferta atinge ou fica abaixo da meta estipulada, sem depender de dependencias de audio externas.
-- **Notificacao Visual:** Painel no topo da interface apresenta a loja correspondente, o valor alcancado e a acao imediata para abertura da pagina de compra.
+1. **Verificacao de Tokens de Modelo:** Se o usuario busca por `RTX 4060` ou `Monitor 144Hz`, o motor rejeita qualquer anuncio que nao contenha os tokens especificos do modelo (impedindo a inclusao de uma `RTX 3050` ou `RX 7600` anunciada como patrocinada na listagem).
+2. **Descarte de Acessorios Avulsos:** Eliminacao automatica de cabos, adaptadores, peliculas, suportes, pastas termicas e gabinetes vazios quando o objetivo de busca for o equipamento principal.
+3. **Corte por Limites da Mediana Estatistica:**
+   $$\text{Preco Minimo Valido} = 0.28 \times \text{Mediana}$$
+   $$\text{Preco Maximo Valido} = 2.60 \times \text{Mediana}$$
+   Valores abaixo de $28\%$ da mediana (geralmente cabos ou pecas avulsas) ou acima de $260\%$ (geralmente computadores completos anunciados com a peca no titulo) sao descartados do ranking principal.
 
 ---
 
-## Exportacao de Dados
+## Sentinela de Preco e Alerta Sonoro Polifonico
 
-O sistema fornece rotas dedicadas para exportacao formal dos dados estruturados:
+O sistema permite configurar um valor alvo para cada arvore de pesquisa. O modulo de auditoria compara o menor preco em tempo real com a meta:
 
-1. **Obsidian Vault (Markdown):** Gera documentos com frontmatter YAML, tabelas comparativas formatadas em GitHub-Flavored Markdown e referencias WikiLinks (`[[Node]]`) compativeis com a navegacao nativa do Obsidian.
-2. **Planilhas CSV:** Arquivo tabular com colunas de ranking, status de melhor oferta, loja/vendedor, precos normalizados, parcelamento, frete, taxas de economia e URLs de compra.
-3. **JSON Estruturado:** Dump integral do grafo (nos, arestas, atributos formais e carimbos de data/hora ISO 8601).
+- **Sintetizador Web Audio API:** Sem carregar arquivos de audio externos, o navegador sintetiza dinamicamente um acorde senoidal duplo (frequencias fundamentais de $523.25\text{ Hz}$ e $659.25\text{ Hz}$) no exato instante em que o sentinela detecta uma queda de preco.
+- **Painel de Notificacao:** Exibe a loja fornecedora, o desconto obtido e a acao imediata para redirecionamento.
+
+---
+
+## Especificacao da API REST
+
+O backend disponibiliza endpoints HTTP para controle de sessoes, expansao e exportacao:
+
+| Metodo | Endpoint | Descricao |
+| :--- | :--- | :--- |
+| `GET` | `/api/state` | Retorna o estado integral do grafo (arvores, nos, arestas e sinapses do Global Brain). |
+| `POST` | `/api/trees/crawl` | Inicializa uma nova sessao de crawling autonomo (Price Finder ou Mapeamento Mental). |
+| `POST` | `/api/trees/:treeId/stop` | Interrompe imediatamente a execucao do Playwright para a arvore especificada. |
+| `POST` | `/api/trees/:treeId/refresh` | Dispara o re-escaneamento multi-lojas para atualizar as cotacoes da arvore ativa. |
+| `GET` | `/api/trees/:treeId/quotes` | Retorna a consolidacao analitica de cotacoes ranqueadas, estatisticas de dispersao e economia. |
+| `POST` | `/api/trees/:treeId/sentinel` | Configura ou remove o preco alvo de monitoramento do Sentinela. |
+| `POST` | `/api/nodes/:nodeId/expand` | Comanda a aranha a aprofundar a exploracao web a partir de um no especifico do grafo. |
+| `POST` | `/api/nodes/manual` | Insere uma anotacao ou dado formal manual vinculado a um no existente. |
+| `DELETE` | `/api/nodes/:nodeId` | Executa a poda de um no individual ou cascata descendente completa (`?cascade=true`). |
+| `DELETE` | `/api/trees/:treeId` | Exclui permanentemente uma arvore de pesquisa e todos os seus nos associados. |
+| `GET` | `/api/trees/:treeId/quote-export` | Exporta a tabela comparativa de precos em formato tabular CSV (`?format=csv`) ou Markdown Obsidian (`?format=markdown`). |
+| `GET` | `/api/trees/:treeId/export` | Exporta a arvore completa em JSON estruturado, CSV relacional ou Obsidian Vault com WikiLinks. |
+
+---
+
+## Formatos de Exportacao
+
+1. **Obsidian Vault (`.md`):** Arquivos com frontmatter YAML, secoes estruturadas e sintaxe WikiLinks (`[[Node]]`) permitindo importacao direta no grafo de navegacao nativo do software Obsidian.
+2. **Planilha Tabular (`.csv`):** Arquivo formatado com colunas de Rank, Status de Melhor Preco, Loja, Titulo do Produto, Preco a Vista, Condicoes de Parcelamento, Frete, Taxas de Economia e Link Direto.
+3. **JSON Estruturado (`.json`):** Estrutura completa serializada contendo arrays relacionais de `trees`, `nodes` e `edges` com carimbos ISO 8601 e seletores CSS formais.
 
 ---
 
 ## Pilha Tecnologica
 
-| Componente | Tecnologia | Finalidade |
+| Dominio | Tecnologia | Finalidade |
 | :--- | :--- | :--- |
-| Interface de Usuario | React 18, Vite | Renderizacao da aplicacao e gerenciamento de estado |
-| Visualizacao de Grafos | react-force-graph-2d, D3.js | Simulacao elastica orientada a forcas (Charge & Link) |
-| Estilizacao | Tailwind CSS | Sistema visual dark mode de alta densidade de informacao |
-| Servidor de Aplicacao | Node.js, Express | Roteamento REST e orquestracao de sessoes |
-| Comunicacao em Tempo Real | Socket.io | Streaming bidirecional de eventos e telemetria |
-| Automacao de Navegador | Playwright (Chromium) | Controle do browser e execucao de scripts de overlay |
-| Sintese Sonora | Web Audio API | Emissao de alertas auditivos polifonicos |
+| **Interface do Operador** | React 18, Vite | Ciclo de vida da aplicacao reativa e gestao de estado |
+| **Renderizacao do Grafo** | react-force-graph-2d, D3.js | Simulacao elastica orientada a forcas (Charge, Link, Gravity) |
+| **Estilizacao Visual** | Tailwind CSS | Layout dark mode de alta densidade visual e responsividade |
+| **Servidor de Aplicacao** | Node.js, Express | Roteamento REST e orquestracao concorrente de tarefas |
+| **Streaming em Tempo Real** | Socket.io | Emissao bidirecional de eventos e telemetria de inspecao |
+| **Automacao de Navegador** | Playwright (Chromium) | Controle do browser e projecao do canvas procedural de IK |
+| **Motor de Audio** | Web Audio API | Sintese de alertas harmonicos polifonicos sem dependencias externas |
 
 ---
 
 ## Instalacao e Execucao
 
-### Requisitos
-- Node.js versao 18 ou superior instalado.
-- Gerenciador de pacotes npm.
+### Requisitos de Ambiente
+- **Node.js:** Versao 18.0.0 ou superior.
+- **npm:** Versao 9.0.0 ou superior.
+- **Sistema Operacional:** Windows, Linux ou macOS.
 
-### Passo 1: Obter o Codigo
+### Passo 1: Clonar o Repositorio
 ```bash
 git clone https://github.com/brunofaomoura-max/arachnemind.git
 cd arachnemind
 ```
 
-### Passo 2: Inicializar o Backend
+### Passo 2: Inicializar o Servidor Backend
+Abra um terminal e execute:
 ```bash
 cd backend
 npm install
 npx playwright install chromium
 npm start
 ```
-*O orquestrador estara ativo na porta 4000 (`http://localhost:4000`).*
+*O orquestrador sera inicializado na porta 4000 (`http://localhost:4000`). O banco local sera gerado automaticamente caso nao exista.*
 
-### Passo 3: Inicializar o Frontend
-Em um terminal separado, acesse a pasta do cliente:
+### Passo 3: Inicializar a Interface Frontend
+Em um terminal paralelo, execute:
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
-*A interface estara disponivel no endereco `http://localhost:5173`.*
+*Acesse o painel web no endereco `http://localhost:5173`.*
 
 ---
 
 ## Auditoria de Seguranca
 
-O codigo-fonte deste projeto e suas dependencias foram submetidos a processo de inspecao e auditoria estatica de seguranca com o framework **NVIDIA SkillSpector**, assegurando a inexistencia de scripts de execucao arbitraria, vetores de exfiltracao de credenciais ou vulnerabilidades de cadeia de suprimentos.
+O codigo-fonte deste projeto e sua arvore de dependencias foram submetidos a processo de inspecao e auditoria estatica de seguranca com o framework **NVIDIA SkillSpector**, atestando conformidade com padroes de desenvolvimento seguro, ausencia de scripts de execucao arbitraria e protecao contra exfiltracao de credenciais.
 
 ---
 
 ## Licenca
 
-Este projeto esta licenciado sob os termos da licenca MIT. Consulte o arquivo [LICENSE](LICENSE) para obter o texto integral.
+Este projeto e distribuido sob a licenca MIT. Consulte o arquivo [LICENSE](LICENSE) para obter os termos e condicoes integrais.
 
 ---
 
-Autor: **Bruno Fao Moura**
+Autor: **Bruno Fao Moura**  
+Repositorio Oficial: [https://github.com/brunofaomoura-max/arachnemind](https://github.com/brunofaomoura-max/arachnemind)

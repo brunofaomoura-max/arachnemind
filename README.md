@@ -1,6 +1,7 @@
 # ArachneMind
 ## Visual Autonomous Web Crawler & Obsidian-Style Interactive Knowledge Graph
 
+[![GitHub](https://img.shields.io/badge/GitHub-Open%20Source-181717?logo=github&logoColor=white)](https://github.com/brunofaomoura-max/arachnemind)
 [![Node.js](https://img.shields.io/badge/Node.js-v18%2B-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
 [![Playwright](https://img.shields.io/badge/Playwright-Chromium-2EAD33?logo=playwright&logoColor=white)](https://playwright.dev/)
 [![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black)](https://react.dev/)
